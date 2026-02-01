@@ -10,45 +10,45 @@ namespace EfCore.TestBed.Benchmarks;
 [RankColumn]
 public class DatabaseSetupBenchmarks
 {
-    [Benchmark(Description = "EfCore.TestBed (SQLite InMemory)")]
-    public void TestBed_SqliteInMemory()
+  [Benchmark(Description = "EfCore.TestBed (SQLite InMemory)")]
+  public void TestBed_SqliteInMemory()
+  {
+    using var db = TestDb.Create<BenchmarkDbContext>();
+  }
+
+  [Benchmark(Description = "SQLite Physical (File)")]
+  public void Sqlite_Physical()
+  {
+    var dbPath = Path.Combine(Path.GetTempPath(), $"benchmark_{Guid.NewGuid()}.db");
+    var connectionString = $"Data Source={dbPath}";
+    try
     {
-        using var db = TestDb.Create<BenchmarkDbContext>();
-    }
+      var options = new DbContextOptionsBuilder<BenchmarkDbContext>()
+          .UseSqlite(connectionString)
+          .Options;
 
-    [Benchmark(Description = "SQLite Physical (File)")]
-    public void Sqlite_Physical()
-    {
-        var dbPath = Path.Combine(Path.GetTempPath(), $"benchmark_{Guid.NewGuid()}.db");
-        var connectionString = $"Data Source={dbPath}";
-        try
-        {
-            var options = new DbContextOptionsBuilder<BenchmarkDbContext>()
-                .UseSqlite(connectionString)
-                .Options;
-
-            using (var context = new BenchmarkDbContext(options))
-            {
-                context.Database.EnsureCreated();
-            }
-
-            SqliteConnection.ClearPool(new SqliteConnection(connectionString));
-        }
-        finally
-        {
-            if (File.Exists(dbPath))
-                File.Delete(dbPath);
-        }
-    }
-
-    [Benchmark(Description = "EF Core InMemory")]
-    public void EfCore_InMemory()
-    {
-        var options = new DbContextOptionsBuilder<BenchmarkDbContext>()
-            .UseInMemoryDatabase(Guid.NewGuid().ToString())
-            .Options;
-
-        using var context = new BenchmarkDbContext(options);
+      using (var context = new BenchmarkDbContext(options))
+      {
         context.Database.EnsureCreated();
+      }
+
+      SqliteConnection.ClearPool(new SqliteConnection(connectionString));
     }
+    finally
+    {
+      if (File.Exists(dbPath))
+        File.Delete(dbPath);
+    }
+  }
+
+  [Benchmark(Description = "EF Core InMemory")]
+  public void EfCore_InMemory()
+  {
+    var options = new DbContextOptionsBuilder<BenchmarkDbContext>()
+        .UseInMemoryDatabase(Guid.NewGuid().ToString())
+        .Options;
+
+    using var context = new BenchmarkDbContext(options);
+    context.Database.EnsureCreated();
+  }
 }
